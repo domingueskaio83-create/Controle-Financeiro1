@@ -1,0 +1,521 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meu Controle Financeiro</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f1f5f9;color:#172033;font-family:Arial,sans-serif}
+header{background:#145c45;color:white;padding:25px 16px}
+header h1{margin:0 0 8px}
+header p{margin:0;color:#d9f5e8}
+main{max-width:1100px;margin:auto;padding:18px}
+nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+button{border:0;padding:11px 14px;border-radius:9px;cursor:pointer;font-weight:bold;background:#176b50;color:white}
+button:hover{opacity:.88}
+nav button{background:#dce5e9;color:#172033}
+nav button.active{background:#172033;color:white}
+.card{background:white;border-radius:14px;padding:18px;margin-bottom:16px;box-shadow:0 3px 12px #0000000a}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.two{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+h2{font-size:20px;margin-top:0}
+h3{margin-top:0}
+.valor{font-size:25px;font-weight:bold;margin:8px 0}
+.muted{color:#64748b;font-size:13px}
+label{display:block;font-size:13px;font-weight:bold;margin:10px 0 5px}
+input,select,textarea{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:8px;font-size:15px;background:white}
+form button{margin-top:14px}
+.page{display:none}.page.active{display:block}
+.good{color:#16834f}.bad{color:#c62828}
+.notice{padding:12px;border-radius:9px;background:#e8f0ff;margin:12px 0;font-size:14px}
+.progress{height:12px;background:#e2e8f0;border-radius:10px;overflow:hidden}
+.progress div{height:100%;background:#16834f;width:0}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:10px 7px;text-align:left;border-bottom:1px solid #e2e8f0}
+th{background:#f8fafc}
+.tablewrap{overflow-x:auto}
+.delete{background:#fee2e2;color:#991b1b;padding:6px 8px}
+.secondary{background:#e2e8f0;color:#172033}
+footer{text-align:center;color:#64748b;padding:25px;font-size:12px}
+@media(max-width:750px){.grid{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}main{padding:10px}.card{padding:14px}.valor{font-size:21px}}
+@media(max-width:400px){.grid{grid-template-columns:1fr 1fr}.valor{font-size:19px}}
+</style>
+</head>
+<body>
+
+<header>
+<h1>💰 Meu Controle Financeiro</h1>
+<p>Organize seu salário, controle seus gastos e conquiste sua meta de economizar.</p>
+</header>
+
+<main>
+<nav>
+<button class="active" onclick="aba('painel',this)">📊 Resumo</button>
+<button onclick="aba('receber',this)">💵 Receber</button>
+<button onclick="aba('gastos',this)">🧾 Gastos do dia</button>
+<button onclick="aba('orcamento',this)">🎯 Orçamento</button>
+<button onclick="aba('analise',this)">🔎 Análise</button>
+<button onclick="aba('dados',this)">⚙️ Dados</button>
+</nav>
+
+<section id="painel" class="page active">
+<div class="card">
+<h2>Meu mês</h2>
+<label>Mês que deseja acompanhar</label>
+<input type="month" id="mes">
+<label>Meta para guardar no mês (R$)</label>
+<input type="number" id="meta" value="100" min="0" onchange="salvarMeta()">
+<p class="muted">Seu salário de referência é R$ 450 por quinzena.</p>
+</div>
+
+<div class="grid">
+<div class="card">
+<div class="muted">Recebido</div>
+<div class="valor good" id="recebido">R$ 0,00</div>
+</div>
+<div class="card">
+<div class="muted">Gastos</div>
+<div class="valor bad" id="gastou">R$ 0,00</div>
+</div>
+<div class="card">
+<div class="muted">Saldo</div>
+<div class="valor" id="saldo">R$ 0,00</div>
+</div>
+<div class="card">
+<div class="muted">Meta de economia</div>
+<div class="valor good" id="economia">R$ 0,00</div>
+</div>
+</div>
+
+<div class="card">
+<h3>Progresso da meta</h3>
+<div class="progress"><div id="barra"></div></div>
+<p id="statusMeta"></p>
+<div id="alerta" class="notice"></div>
+</div>
+
+<div class="card">
+<h3>Últimas movimentações</h3>
+<div class="tablewrap">
+<table>
+<thead><tr><th>Data</th><th>Descrição</th><th>Tipo</th><th>Valor</th></tr></thead>
+<tbody id="ultimas"></tbody>
+</table>
+</div>
+</div>
+</section>
+
+<section id="receber" class="page">
+<div class="card">
+<h2>Registrar recebimento</h2>
+<p class="muted">Preencha sempre que receber seus R$ 450 ou algum dinheiro extra.</p>
+<form id="formReceita">
+<label>Data do recebimento</label>
+<input type="date" id="dataReceita" required>
+<label>Quanto recebeu? (R$)</label>
+<input type="number" id="valorReceita" value="450" min="0.01" step="0.01" required>
+<label>Origem do dinheiro</label>
+<select id="tipoReceita">
+<option>Salário/quinzena</option>
+<option>Dinheiro extra</option>
+<option>Bico ou comissão</option>
+<option>Presente</option>
+<option>Rendimento</option>
+<option>Outro</option>
+</select>
+<label>Descrição</label>
+<input id="descReceita" placeholder="Ex.: salário do dia 25">
+<button type="submit">Salvar recebimento</button>
+</form>
+</div>
+<div class="card">
+<h3>Recebimentos do mês</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>Data</th><th>Descrição</th><th>Valor</th><th></th></tr></thead>
+<tbody id="listaReceitas"></tbody>
+</table></div>
+</div>
+</section>
+
+<section id="gastos" class="page">
+<div class="card">
+<h2>O que você gastou hoje?</h2>
+<p class="muted">Anote tudo: café, transporte, compras, lazer e contas.</p>
+<form id="formGasto">
+<label>Data do gasto</label>
+<input type="date" id="dataGasto" required>
+<label>Quanto gastou? (R$)</label>
+<input type="number" id="valorGasto" min="0.01" step="0.01" placeholder="Ex.: 14,00" required>
+<label>Categoria</label>
+<select id="categoria">
+<option>Futevôlei</option>
+<option>Cabelo</option>
+<option>Café na escola</option>
+<option>Viagem para Alfenas</option>
+<option>Saídas e lazer</option>
+<option>Alimentação</option>
+<option>Transporte</option>
+<option>Cartão de crédito</option>
+<option>Contas e necessidades</option>
+<option>Compras</option>
+<option>Educação</option>
+<option>Saúde</option>
+<option>Outros</option>
+</select>
+<label>O que você gastou?</label>
+<input id="descGasto" placeholder="Ex.: café e pão de queijo" required>
+<label>Esse gasto foi necessário?</label>
+<select id="necessario">
+<option value="sim">Sim, era necessário</option>
+<option value="nao">Não, foi por impulso</option>
+<option value="duvida">Não tenho certeza</option>
+</select>
+<label>Forma de pagamento</label>
+<select id="pagamento">
+<option>Dinheiro/Pix/débito</option>
+<option>Cartão de crédito</option>
+<option>Boleto</option>
+<option>Outro</option>
+</select>
+<label>Observação (opcional)</label>
+<textarea id="observacao" rows="2" placeholder="O que poderia fazer diferente?"></textarea>
+<button type="submit">Salvar gasto</button>
+</form>
+</div>
+
+<div class="card">
+<h3>Gastos registrados</h3>
+<label>Filtrar categoria</label>
+<select id="filtro" onchange="render()">
+<option value="">Todas as categorias</option>
+<option>Futevôlei</option><option>Cabelo</option>
+<option>Café na escola</option><option>Viagem para Alfenas</option>
+<option>Saídas e lazer</option><option>Alimentação</option>
+<option>Transporte</option><option>Cartão de crédito</option>
+<option>Contas e necessidades</option><option>Compras</option>
+<option>Educação</option><option>Saúde</option><option>Outros</option>
+</select>
+<div class="tablewrap"><table>
+<thead><tr><th>Data e descrição</th><th>Categoria</th><th>Valor</th><th></th></tr></thead>
+<tbody id="listaGastos"></tbody>
+</table></div>
+</div>
+</section>
+
+<section id="orcamento" class="page">
+<div class="card">
+<h2>Planejamento mensal</h2>
+<p class="muted">Este plano considera dois pagamentos de R$ 450. Altere os valores conforme sua realidade.</p>
+<label>Salário por quinzena (R$)</label>
+<input type="number" id="salario" value="450" min="0">
+<label>Quantos pagamentos espera receber neste mês?</label>
+<select id="quantidadePagamentos">
+<option value="1">1 pagamento</option>
+<option value="2" selected>2 pagamentos</option>
+<option value="3">3 pagamentos</option>
+</select>
+<h3 style="margin-top:20px">Gastos planejados (R$ por mês)</h3>
+<div id="camposOrcamento"></div>
+<button onclick="salvarOrcamento()">Salvar planejamento</button>
+</div>
+<div class="card">
+<h3>Resultado do seu plano</h3>
+<div id="resultadoOrcamento"></div>
+</div>
+<div class="card">
+<h3>Plano para cada pagamento de R$ 450</h3>
+<p>Use como referência inicial, sem contar despesas que ainda não informou.</p>
+<div class="tablewrap"><table>
+<thead><tr><th>Destino</th><th>Por quinzena</th></tr></thead>
+<tbody>
+<tr><td>Guardar para sua meta</td><td>R$ 50,00</td></tr>
+<tr><td>Futevôlei (estimativa mensal dividida por 2)</td><td>R$ 74,00</td></tr>
+<tr><td>Cabelo</td><td>R$ 35,00</td></tr>
+<tr><td>Café na escola</td><td>R$ 56,00</td></tr>
+<tr><td>Viagem para Alfenas</td><td>R$ 100,00</td></tr>
+<tr><td>Saídas e outras despesas</td><td>R$ 135,00</td></tr>
+</tbody>
+</table></div>
+<p class="muted">A divisão acima soma R$ 450. Se tiver uma fatura de cartão ou outras contas, ajuste o plano antes de gastar.</p>
+</div>
+</section>
+
+<section id="analise" class="page">
+<div class="card">
+<h2>Como você está indo?</h2>
+<div id="acertos"></div>
+</div>
+<div class="card">
+<h2>O que você fez de errado ou pode melhorar?</h2>
+<p class="muted">A análise não é para julgar você. É para identificar hábitos que podem melhorar no próximo mês.</p>
+<div id="erros"></div>
+</div>
+<div class="card">
+<h3>Gastos por categoria</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>Categoria</th><th>Total</th></tr></thead>
+<tbody id="categorias"></tbody>
+</table></div>
+</div>
+<div class="card">
+<h3>Relatório mensal</h3>
+<div id="relatorio"></div>
+<button onclick="baixarCSV()">Baixar relatório CSV</button>
+<button class="secondary" onclick="window.print()">Imprimir / salvar PDF</button>
+</div>
+</section>
+
+<section id="dados" class="page">
+<div class="card">
+<h2>Backup dos seus dados</h2>
+<p>Seus registros ficam salvos neste navegador. Exporte um backup para guardar uma cópia.</p>
+<button onclick="exportarBackup()">Exportar backup</button>
+<label>Importar backup salvo anteriormente</label>
+<input type="file" id="arquivoBackup" accept=".json,application/json">
+</div>
+<div class="card">
+<h2>Apagar registros</h2>
+<p class="muted">Isso apaga todos os recebimentos e gastos registrados. Exporte um backup antes, se precisar.</p>
+<button style="background:#b91c1c" onclick="limparTudo()">Apagar todos os dados</button>
+</div>
+</section>
+</main>
+
+<footer>Meu Controle Financeiro • Registre todos os valores para ter uma análise confiável.</footer>
+
+<script>
+const CHAVE='controleKaioDados';
+const categoriasPlanejadas=[
+['Futevôlei',148],['Cabelo',70],['Café na escola',112],
+['Viagem para Alfenas',200],['Saídas e lazer',100],
+['Cartão de crédito',0],['Contas e necessidades',0],['Outros',0]
+];
+let dados=carregar();
+function carregar(){
+ try{
+  const d=JSON.parse(localStorage.getItem(CHAVE));
+  if(d && Array.isArray(d.receitas) && Array.isArray(d.gastos)){
+   if(!d.orcamento)d.orcamento=[...categoriasPlanejadas];
+   return d;
+  }
+ }catch(e){}
+ return {receitas:[],gastos:[],orcamento:categoriasPlanejadas.map(x=>[...x]),meta:100,salario:450,pagamentos:2};
+}
+function salvar(){localStorage.setItem(CHAVE,JSON.stringify(dados));render();}
+function dinheiro(n){return (Number(n)||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});}
+function hoje(){
+ const d=new Date();
+ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function mesAtual(){return hoje().slice(0,7);}
+function mesEscolhido(){return document.getElementById('mes').value||mesAtual();}
+function receitasMes(){return dados.receitas.filter(x=>x.data.startsWith(mesEscolhido()));}
+function gastosMes(){return dados.gastos.filter(x=>x.data.startsWith(mesEscolhido()));}
+function total(arr){return arr.reduce((s,x)=>s+Number(x.valor||0),0);}
+function seguro(t){return String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function dataBR(d){if(!d)return '';return d.split('-').reverse().join('/');}
+function aba(id,botao){
+ document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+ document.getElementById(id).classList.add('active');
+ document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+ botao.classList.add('active');
+ render();
+}
+document.getElementById('mes').value=mesAtual();
+document.getElementById('dataReceita').value=hoje();
+document.getElementById('dataGasto').value=hoje();
+document.getElementById('mes').addEventListener('change',render);
+document.getElementById('meta').value=dados.meta;
+document.getElementById('salario').value=dados.salario;
+document.getElementById('quantidadePagamentos').value=dados.pagamentos;
+
+function salvarMeta(){
+ dados.meta=Math.max(0,Number(document.getElementById('meta').value)||0);
+ salvar();
+}
+document.getElementById('formReceita').addEventListener('submit',e=>{
+ e.preventDefault();
+ dados.receitas.push({
+  id:Date.now()+Math.random(),
+  data:document.getElementById('dataReceita').value,
+  valor:Number(document.getElementById('valorReceita').value),
+  tipo:document.getElementById('tipoReceita').value,
+  descricao:document.getElementById('descReceita').value.trim()||'Recebimento'
+ });
+ document.getElementById('descReceita').value='';
+ salvar();
+ alert('Recebimento registrado!');
+});
+document.getElementById('formGasto').addEventListener('submit',e=>{
+ e.preventDefault();
+ dados.gastos.push({
+  id:Date.now()+Math.random(),
+  data:document.getElementById('dataGasto').value,
+  valor:Number(document.getElementById('valorGasto').value),
+  categoria:document.getElementById('categoria').value,
+  descricao:document.getElementById('descGasto').value.trim(),
+  necessario:document.getElementById('necessario').value,
+  pagamento:document.getElementById('pagamento').value,
+  observacao:document.getElementById('observacao').value.trim()
+ });
+ document.getElementById('valorGasto').value='';
+ document.getElementById('descGasto').value='';
+ document.getElementById('observacao').value='';
+ salvar();
+ alert('Gasto registrado! Não esqueça de anotar os pequenos gastos também.');
+});
+function excluirReceita(id){
+ if(confirm('Excluir este recebimento?')){
+  dados.receitas=dados.receitas.filter(x=>x.id!==id);salvar();
+ }
+}
+function excluirGasto(id){
+ if(confirm('Excluir este gasto?')){
+  dados.gastos=dados.gastos.filter(x=>x.id!==id);salvar();
+ }
+}
+
+function montarOrcamento(){
+ const el=document.getElementById('camposOrcamento');
+ el.innerHTML=dados.orcamento.map((x,i)=>`
+ <label>${seguro(x[0])} — planejado por mês (R$)</label>
+ <input type="number" min="0" step="1" value="${Number(x[1])}" data-orc="${i}">
+ `).join('');
+ el.querySelectorAll('[data-orc]').forEach(inp=>inp.addEventListener('change',()=>{
+  dados.orcamento[Number(inp.dataset.orc)][1]=Math.max(0,Number(inp.value)||0);
+  mostrarResultadoOrcamento();
+ }));
+ document.getElementById('salario').addEventListener('change',mostrarResultadoOrcamento);
+ document.getElementById('quantidadePagamentos').addEventListener('change',mostrarResultadoOrcamento);
+ mostrarResultadoOrcamento();
+}
+function salvarOrcamento(){
+ dados.salario=Math.max(0,Number(document.getElementById('salario').value)||450);
+ dados.pagamentos=Number(document.getElementById('quantidadePagamentos').value)||2;
+ dados.meta=Math.max(0,Number(document.getElementById('meta').value)||0);
+ salvar();
+ alert('Planejamento salvo!');
+}
+function mostrarResultadoOrcamento(){
+ const salario=Math.max(0,Number(document.getElementById('salario').value)||450);
+ const pagamentos=Number(document.getElementById('quantidadePagamentos').value)||2;
+ const renda=salario*pagamentos;
+ const despesas=dados.orcamento.reduce((s,x)=>s+Number(x[1]||0),0);
+ const meta=Number(document.getElementById('meta').value)||dados.meta||100;
+ const sobra=renda-despesas-meta;
+ document.getElementById('resultadoOrcamento').innerHTML=`
+ <p>Renda planejada: <b>${dinheiro(renda)}</b></p>
+ <p>Despesas planejadas: <b>${dinheiro(despesas)}</b></p>
+ <p>Meta de economia: <b>${dinheiro(meta)}</b></p>
+ <h3 class="${sobra<0?'bad':'good'}">${sobra<0?'Faltariam ':'Sobram '}${dinheiro(Math.abs(sobra))} após despesas e meta.</h3>
+ <p class="muted">Confira se todas as despesas foram incluídas. O valor é uma estimativa, não o saldo real da sua conta.</p>`;
+}
+
+function render(){
+ const inc=receitasMes(),gas=gastosMes();
+ const entradas=total(inc),saidas=total(gas),saldo=entradas-saidas,meta=Number(dados.meta)||0;
+ document.getElementById('recebido').textContent=dinheiro(entradas);
+ document.getElementById('gastou').textContent=dinheiro(saidas);
+ document.getElementById('saldo').textContent=dinheiro(saldo);
+ document.getElementById('saldo').className='valor '+(saldo<0?'bad':'');
+ document.getElementById('economia').textContent=dinheiro(Math.max(0,saldo));
+ const progresso=meta>0?Math.min(100,Math.max(0,saldo/meta*100)):100;
+ document.getElementById('barra').style.width=progresso+'%';
+ document.getElementById('statusMeta').textContent=saldo>=meta?
+ '🎉 Sua meta foi alcançada pelo saldo registrado! Separe esse dinheiro para não gastá-lo.':
+ 'Faltam '+dinheiro(Math.max(0,meta-saldo))+' para alcançar sua meta, considerando os registros.';
+ document.getElementById('alerta').textContent=saldo<0?
+ 'Atenção: você registrou mais gastos do que recebeu. Reveja suas despesas e confira se esqueceu algum recebimento.':
+ 'Dica: guarde sua meta assim que receber e registre todos os gastos, mesmo os pequenos.';
+ document.getElementById('ultimas').innerHTML=[
+  ...inc.map(x=>({...x,tipo:'Recebimento',descricao:x.descricao})),
+  ...gas.map(x=>({...x,tipo:'Gasto',descricao:x.descricao}))
+ ].sort((a,b)=>b.data.localeCompare(a.data)).slice(0,10).map(x=>`
+ <tr><td>${dataBR(x.data)}</td><td>${seguro(x.descricao)}</td>
+ <td>${x.tipo}</td><td>${dinheiro(x.valor)}</td></tr>`).join('')||
+ '<tr><td colspan="4">Nenhuma movimentação registrada.</td></tr>';
+
+ document.getElementById('listaReceitas').innerHTML=inc.slice().sort((a,b)=>b.data.localeCompare(a.data)).map(x=>`
+ <tr><td>${dataBR(x.data)}</td><td>${seguro(x.descricao)}</td><td>${dinheiro(x.valor)}</td>
+ <td><button class="delete" onclick="excluirReceita(${x.id})">Excluir</button></td></tr>`).join('')||
+ '<tr><td colspan="4">Nenhum recebimento neste mês.</td></tr>';
+
+ const filtro=document.getElementById('filtro').value;
+ const visiveis=filtro?gas.filter(x=>x.categoria===filtro):gas;
+ document.getElementById('listaGastos').innerHTML=visiveis.slice().sort((a,b)=>b.data.localeCompare(a.data)).map(x=>`
+ <tr><td>${dataBR(x.data)}<br>${seguro(x.descricao)}${x.necessario==='nao'?' ⚠️':''}</td>
+ <td>${seguro(x.categoria)}</td><td>${dinheiro(x.valor)}</td>
+ <td><button class="delete" onclick="excluirGasto(${x.id})">Excluir</button></td></tr>`).join('')||
+ '<tr><td colspan="4">Nenhum gasto nesta seleção.</td></tr>';
+
+ const porCategoria={};
+ gas.forEach(x=>porCategoria[x.categoria]=(porCategoria[x.categoria]||0)+Number(x.valor));
+ document.getElementById('categorias').innerHTML=Object.entries(porCategoria).sort((a,b)=>b[1]-a[1]).map(([c,v])=>
+ `<tr><td>${seguro(c)}</td><td>${dinheiro(v)}</td></tr>`).join('')||
+ '<tr><td colspan="2">Nenhum gasto registrado.</td></tr>';
+
+ const impulsos=gas.filter(x=>x.necessario==='nao');
+ const duvidas=gas.filter(x=>x.necessario==='duvida');
+ const valorImpulso=total(impulsos);
+ const maior=Object.entries(porCategoria).sort((a,b)=>b[1]-a[1])[0];
+ document.getElementById('acertos').innerHTML=`
+ <p>✅ Você registrou <b>${inc.length}</b> recebimento(s) e <b>${gas.length}</b> gasto(s).</p>
+ <p>💵 Total que entrou: <b>${dinheiro(entradas)}</b>.</p>
+ <p>📌 Saldo registrado: <b>${dinheiro(saldo)}</b>.</p>
+ <p>${saldo>=meta&&entradas>0?'🎯 Sua meta mensal foi atingida pelo saldo registrado.':'🎯 Continue acompanhando para atingir sua meta de '+dinheiro(meta)+'.'}</p>`;
+ let erros=[];
+ if(saldo<0)erros.push('Você gastou mais do que recebeu. Corte gastos não essenciais e reveja o planejamento.');
+ if(valorImpulso>0)erros.push('Você marcou '+dinheiro(valorImpulso)+' em gastos por impulso. Veja quais compras poderiam ser evitadas.');
+ if(duvidas.length)erros.push(duvidas.length+' gasto(s) ficaram como “não tenho certeza”. Reflita se valeram a pena.');
+ if(maior)erros.push('Sua categoria mais cara foi '+maior[0]+', com '+dinheiro(maior[1])+'. Confira se está dentro do planejado.');
+ if(saldo>=0&&saldo<meta&&entradas>0)erros.push('Ainda faltam '+dinheiro(meta-saldo)+' para a meta. Veja se consegue reduzir lazer ou outros gastos.');
+ document.getElementById('erros').innerHTML=erros.length?'<ul>'+erros.map(x=>'<li>'+seguro(x)+'</li>').join('')+'</ul>':'Nenhum alerta pelos dados registrados. Isso não garante que todos os gastos foram anotados; continue registrando tudo.';
+ document.getElementById('relatorio').innerHTML=`
+ <p>Mês analisado: <b>${mesEscolhido()}</b></p>
+ <p>Total recebido: <b>${dinheiro(entradas)}</b></p>
+ <p>Total gasto: <b>${dinheiro(saidas)}</b></p>
+ <p>Saldo: <b>${dinheiro(saldo)}</b></p>
+ <p>Gastos marcados como impulso: <b>${dinheiro(valorImpulso)}</b></p>
+ <p>Meta: <b>${dinheiro(meta)}</b></p>
+ <p>${saldo>=meta?'Meta alcançada pelo saldo registrado.':'Meta ainda não alcançada.'}</p>
+ <p class="muted">A análise só considera os registros deste programa. Para evitar contar o cartão duas vezes, escolha registrar cada compra no cartão ou registrar apenas a fatura paga; não registre ambos como gasto.</p>`;
+ mostrarResultadoOrcamento();
+}
+function exportarBackup(){
+ const blob=new Blob([JSON.stringify(dados,null,2)],{type:'application/json'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='backup-financeiro.json';a.click();URL.revokeObjectURL(a.href);
+}
+document.getElementById('arquivoBackup').addEventListener('change',e=>{
+ const arquivo=e.target.files[0];if(!arquivo)return;
+ const leitor=new FileReader();
+ leitor.onload=()=>{
+  try{
+   const d=JSON.parse(leitor.result);
+   if(!Array.isArray(d.receitas)||!Array.isArray(d.gastos))throw new Error();
+   dados=d;if(!dados.orcamento)dados.orcamento=categoriasPlanejadas.map(x=>[...x]);
+   salvar();alert('Backup importado com sucesso!');
+  }catch(err){alert('Arquivo inválido. Selecione um backup exportado por este programa.');}
+ };
+ leitor.readAsText(arquivo);
+});
+function limparTudo(){
+ if(confirm('Tem certeza que deseja apagar todos os recebimentos e gastos? Exporte um backup antes, se quiser guardar os dados.')){
+  dados={receitas:[],gastos:[],orcamento:categoriasPlanejadas.map(x=>[...x]),meta:100,salario:450,pagamentos:2};
+  salvar();
+ }
+}
+function baixarCSV(){
+ const linhas=[['Data','Tipo','Descrição','Categoria','Valor','Necessário','Pagamento','Observação']];
+ dados.receitas.forEach(x=>linhas.push([x.data,'Recebimento',x.descricao,x.tipo,x.valor,'','','']));
+ dados.gastos.forEach(x=>linhas.push([x.data,'Gasto',x.descricao,x.categoria,x.valor,x.necessario,x.pagamento,x.observacao]));
+ const csv='\ufeff'+linhas.map(l=>l.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\r\n');
+ const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='relatorio-financeiro.csv';a.click();URL.revokeObjectURL(a.href);
+}
+montarOrcamento();
+render();
+</script>
+</body>
+</html>
